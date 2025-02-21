@@ -3,6 +3,15 @@
 
 using namespace Eigen;
 
+#ifndef ACTIVATIONS_ENUM
+#define ACTIVATIONS_ENUM
+enum class Activation{
+    Sigmoid,
+    ReLU
+};
+#endif
+
+
 #ifndef MLD_DEFINED
 #define MLD_DEFINED
 typedef Matrix<long double, Dynamic, Dynamic> Matrixld;

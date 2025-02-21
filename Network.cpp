@@ -1,8 +1,8 @@
-#include "reseau.hpp"
+#include "Network.hpp"
 #include <random>
 #include <sstream>
 #include "calcul_erreur.hpp"
-
+#include <assert.h>
 
 
 void Network::init_params(){
@@ -15,6 +15,7 @@ void Network::init_params(){
         Ws.push_back(Matrixld::NullaryExpr(neuronnes[i], neuronnes[i - 1], [&]() { return dist(gen); }));
         Bs.push_back(RowVectorld::NullaryExpr(neuronnes[i], [&]() { return dist(gen); }));
     }
+    has_exit = true;
 }
 
 
@@ -24,54 +25,37 @@ void Network::init_fixe_params(){
         Ws.push_back(Matrixld::NullaryExpr(neuronnes[i], neuronnes[i - 1], [&]() { return 1.0; }));
         Bs.push_back(RowVectorld::NullaryExpr(neuronnes[i], [&]() { return 0; }));
     }
+    has_exit = true;
 }
 
 
 Network::Network(
-    size_t couche,
-    long double alpha,
-    long double eps,
     vector<int> neuronnes,
     vector<function<Matrixld(const Matrixld&)>> activations,
-    vector<function<Matrixld(const Matrixld&)>> derivees,
-    vector<function<Matrixld(const Matrixld&,const Matrixld&,const Matrixld&)>> formule_gradient_W,
-    vector<function<RowVectorld(const Matrixld&,const Matrixld&)>> formule_gradient_B
-    ):couche(couche),generation(0),alpha(alpha),max_iter(10000),eps(eps),neuronnes(neuronnes), activations(activations),derivees(derivees),formule_gradient_W(formule_gradient_W),formule_gradient_B(formule_gradient_B){
+    vector<function<Matrixld(const Matrixld&)>> derivees
+    ):couche(neuronnes.size()),epoch(0),neuronnes(neuronnes), activations(activations),derivees(derivees){
             init_params();
-            need_to_train = true;
             fonction_cout = crossEntropy;
 }
 
 
 Network::Network(
-        size_t couche,
-        long double alpha,
-        long double eps,
-        int max_iter,
         vector<int> neuronnes,
         vector<function<Matrixld(const Matrixld&)>> activations,
         vector<function<Matrixld(const Matrixld&)>> derivees,
-        vector<function<Matrixld(const Matrixld&,const Matrixld&,const Matrixld&)>> formule_gradient_W,
-        vector<function<RowVectorld(const Matrixld&,const Matrixld&)>> formule_gradient_B,
         function<long double(const Matrixld&,const Matrixld&)> fonction_cout
-        ):couche(couche),generation(0),alpha(alpha),max_iter(max_iter),eps(eps),neuronnes(neuronnes), activations(activations), derivees(derivees),formule_gradient_W(formule_gradient_W),formule_gradient_B(formule_gradient_B),fonction_cout(fonction_cout){
+        ):couche(neuronnes.size()),epoch(0),neuronnes(neuronnes), activations(activations), derivees(derivees),fonction_cout(fonction_cout){
             init_params();
             need_to_train = true;
 }
 
 Network::Network(
-        size_t couche,
-        long double alpha,
-        long double eps,
-        int max_iter,
         vector<int> neuronnes,
         vector<function<Matrixld(const Matrixld&)>> activations,
         vector<function<Matrixld(const Matrixld&)>> derivees,
-        vector<function<Matrixld(const Matrixld&,const Matrixld&,const Matrixld&)>> formule_gradient_W,
-        vector<function<RowVectorld(const Matrixld&,const Matrixld&)>> formule_gradient_B,
         function<long double(const Matrixld&,const Matrixld&)> fonction_cout,
         bool same_start // Si true alors initialise toujous les poids et biais pareils.
-        ):couche(couche),generation(0),alpha(alpha),max_iter(max_iter),eps(eps),neuronnes(neuronnes), activations(activations), derivees(derivees),formule_gradient_W(formule_gradient_W),formule_gradient_B(formule_gradient_B),fonction_cout(fonction_cout)
+        ):couche(neuronnes.size()),epoch(0),neuronnes(neuronnes), activations(activations), derivees(derivees),fonction_cout(fonction_cout)
     {
         need_to_train = true;
         if(same_start){
@@ -81,12 +65,13 @@ Network::Network(
         }
 }
 
-Network::Network():generation(0){}
+Network::Network():epoch(0){need_to_train = true;}
 
 
-void Network::train_1_gen(Matrixld X,Matrixld E){
+void Network::train_1_gen(Matrixld X,Matrixld E,long double alpha, long double eps, bool affichage){
     /*Propagation avant */
-    
+    assert(has_exit && "Add an exit layer to your network");
+
     vector<Matrixld> Result_couches(couche);
     Matrixld Y = X;
     for (size_t i = 0;i<couche-1;++i){ //pour chaque couche
@@ -119,13 +104,10 @@ void Network::train_1_gen(Matrixld X,Matrixld E){
         }
     }
     
-
     dW[0] = X.transpose() * errorpropag[0];
 
     dB[0] = errorpropag[0].colwise().sum();
-
-    
-    
+ 
     for (size_t l = 0; l < couche-1; l++) {
 
 
@@ -136,25 +118,73 @@ void Network::train_1_gen(Matrixld X,Matrixld E){
     }
 
 
-
-    //alpha = 0.99*alpha; //ajustement de alpha à tester
-    generation++;
-    if (affichage_gen)   cout << "Géneration : " << generation << " -> Done" << endl;
+    epoch++;
+    if (affichage)   cout << "Epoch : " << epoch << " -> Done" << endl;
     
-    if (affichage_gen)  cout <<"Perte : " << fonction_cout(Result_couches[couche-2],E.transpose()) <<endl;
-    need_to_train = fonction_cout(Result_couches[couche-2],E.transpose()) > eps; // A changer pour prendre en compte la fonction cout
-    //need_to_train = (-(E.transpose().array() * Result_couches[couche-2].array().log() + (1 - E.transpose().array()) * (1.0 - Result_couches[couche-2].array()).log()).mean()) > eps;
+    if (affichage)  cout <<"Perte : " << fonction_cout(Result_couches[couche-2],E.transpose()) <<endl;
+    need_to_train = fonction_cout(Result_couches[couche-2],E.transpose()) > eps;
 }
 
 
-void Network::train_full(Matrixld X,Matrixld E){ //Prendre en compte eps
+void Network::train_full(Matrixld X,Matrixld E, long double alpha, long double eps, int max_iter, bool affichage){
+    auto debut = high_resolution_clock::now(); 
+
+    int iteration = 0;
+    cout << "Start" << endl;
+    while(iteration < max_iter){
+        if(need_to_train){
+            train_1_gen(X,E,alpha,eps,affichage);
+            iteration ++;
+        }else{
+            break;
+        }
+
+    }
+
+    auto fin = high_resolution_clock::now();
+    duration<double> temps = fin - debut; 
+    cout << "Training completed in " << temps.count() << " secondes" << endl;
+
+}
+
+void Network::train_full_batch(vector<Matrixld> X, vector<Matrixld> E, long double alpha, long double eps, int max_iter, bool affichage){
+    auto debut = high_resolution_clock::now();
+    cout << "Start" << endl;
+    int iteration = 0;
+    while(iteration < max_iter){
+        if(need_to_train){
+            for(size_t i =0;i<X.size();i++){
+                train_1_gen(X[i],E[i],alpha,eps,affichage);
+            }
+            
+            iteration ++;
+        }
+    }
+
+    auto fin = high_resolution_clock::now();
+    duration<double> temps = fin - debut; // Durée en secondes
+    cout << "Training completed in" << temps.count() << " secondes" << endl;
+
+}
+
+
+void Network::better_train_full(Matrixld X,Matrixld E, long double alpha, long double eps, int max_iter, bool affichage, int ratio){ //Prendre en compte eps
     auto debut = high_resolution_clock::now(); // Capture le temps de début
 
     int iteration = 0;
-    cout << "Debut" << endl;
+    cout << "Start" << endl;
     while(iteration < max_iter){
         if(need_to_train){
-            train_1_gen(X,E);
+            if (iteration % ratio == 0){
+                auto first_train = high_resolution_clock::now();
+                train_1_gen(X,E,alpha,eps,affichage);
+                auto end_first_train = high_resolution_clock::now();
+                duration<double> temps = end_first_train - first_train;
+                cout << "epoch : " << epoch << "-----> Time remaining : " << temps.count()*(max_iter-iteration) << " secondes" << endl;
+            }else{
+                train_1_gen(X,E,alpha,eps,affichage);
+            }
+            
             iteration ++;
         }else{
             break;
@@ -164,19 +194,33 @@ void Network::train_full(Matrixld X,Matrixld E){ //Prendre en compte eps
 
     auto fin = high_resolution_clock::now();
     duration<double> temps = fin - debut; // Durée en secondes
-    cout << "Entrainement terminé en " << temps.count() << " secondes" << endl;
+    cout << "Training completed in " << temps.count() << " secondes" << endl;
 
 }
 
-void Network::train_full_batch(vector<Matrixld> X, vector<Matrixld> E){
+void Network::better_train_full_batch(vector<Matrixld> X, vector<Matrixld> E, long double alpha, long double eps, int max_iter, bool affichage , int ratio ){
     auto debut = high_resolution_clock::now();
-    cout << "Début" << endl;
+    cout << "Start" << endl;
     int iteration = 0;
     while(iteration < max_iter){
         if(need_to_train){
-            for(size_t i =0;i<X.size();i++){
-                train_1_gen(X[i],E[i]);
+            if (iteration % ratio == 0){
+                auto first_train = high_resolution_clock::now();
+                
+                for(size_t i =0;i<X.size();i++){
+                    train_1_gen(X[i],E[i],alpha,eps,affichage);
+                }
+                
+                auto end_first_train = high_resolution_clock::now();
+                duration<double> temps = end_first_train - first_train;
+                cout << "epoch : " << epoch << "-----> Time remaining : " << temps.count()*(max_iter-iteration) << " secondes" << endl;
+
+            }else{
+                for(size_t i =0;i<X.size();i++){
+                    train_1_gen(X[i],E[i],alpha,eps,affichage);
+                }
             }
+
             
             iteration ++;
         }
@@ -184,7 +228,7 @@ void Network::train_full_batch(vector<Matrixld> X, vector<Matrixld> E){
 
     auto fin = high_resolution_clock::now();
     duration<double> temps = fin - debut; // Durée en secondes
-    cout << "Entrainement terminé en " << temps.count() << " secondes" << endl;
+    cout << "Training completed in" << temps.count() << " secondes" << endl;
 
 }
 
@@ -219,12 +263,8 @@ void Network::afficher_cmd(){
 json Network::to_json() const {
     json j;
     j["couche"] = couche;
-    j["generation"] = generation;
-    j["alpha"] = std::to_string(alpha);  // Converti en string
-    j["max_iter"] = max_iter;
-    j["eps"] = std::to_string(eps);      // Converti en string
+    j["epoch"] = epoch;
     j["neuronnes"] = neuronnes;
-    j["affichage_gen"] = affichage_gen;
     j["need_to_train"] = need_to_train;
 
     // Conversion des matrices Eigen en vecteurs JSON (avec conversion en string)
@@ -260,12 +300,8 @@ json Network::to_json() const {
 // Désérialisation depuis JSON
 void Network::from_json(const json& j) {
     couche = j.at("couche").get<size_t>();
-    generation = j.at("generation").get<int>();
-    alpha = stold(j.at("alpha").get<string>());
-    max_iter = j.at("max_iter").get<int>();
-    eps = stold(j.at("eps").get<string>());
+    epoch = j.at("epoch").get<int>();
     neuronnes = j.at("neuronnes").get<vector<int>>();
-    affichage_gen = j.at("affichage_gen").get<bool>();
     need_to_train = j.at("need_to_train").get<bool>();
 
     Ws.clear();
@@ -304,8 +340,8 @@ void Network::load_from_file(const string& filename) {
     file.close();
 }
 
-void Network::afficher_graphique() {
-    cout << "AAA" << endl;
+void Network::afficher_graphique(){
+    cout << "No implemented yet" << endl;
 }
 
 
@@ -316,12 +352,33 @@ void Network::ajoute_couche(int neuronnes, function<Matrixld(const Matrixld&)> a
     this->derivees.push_back(derivee);
 }
 
-void Network::init_train(long double alpha, long double eps, int max_iter, bool affichage_gen, function<long double(const Matrixld&,const Matrixld&)> fonction_cout){
-    this->alpha =alpha;
-    this->affichage_gen = affichage_gen;
-    this->eps = eps;
-    this->max_iter = max_iter;
-    this->fonction_cout = fonction_cout;
-    init_params();
-}
+void Network::add_layer(int neuronnes, Activation activation){
+    assert(has_enter && "Add an enter layer to your network");
+    switch (activation)
+    {
+    case Activation::Sigmoid:
+        this->neuronnes.push_back(neuronnes);
+        activations.push_back(sigmoid_m);
+        derivees.push_back(dsigmoid);
+        break;
+    
+    case Activation::ReLU:
+        this->neuronnes.push_back(neuronnes);
+        activations.push_back(ReLU_m);
+        derivees.push_back(dReLU);
+        break;
 
+    default:
+        break;
+    }
+
+}
+void Network::add_enter(int neuronnes){
+    this->neuronnes.push_back(neuronnes);
+    has_enter = true;
+}
+void Network::add_exit(int neuronnes, Activation activation){
+    add_layer(neuronnes, activation);
+    init_params();
+
+}
