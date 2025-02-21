@@ -1,6 +1,6 @@
 #include <cstdlib>
 #include <iostream>
-#include "reseau.hpp"
+#include "Network.hpp"
 #include "gradients.hpp"
 #include "derivee.hpp"
 #include "calcul_erreur.hpp"
@@ -38,8 +38,7 @@ int main(int argc, char* argv[]){
     }
     
     
-    Network reseauXOR((neuronnes.size()),alpha,eps,iter_max,neuronnes,activations,derivees,formule_gradient_W,formule_gradient_B,crossEntropy,stoch);
-    reseauXOR.affichage_gen = affichage;
+    Network reseauXOR(neuronnes,activations,derivees,crossEntropy,stoch);
 
     
     Matrixld X(4,2);
@@ -309,7 +308,7 @@ int main(int argc, char* argv[]){
 ,0 ,0 ,1 ,1 ,0 ,0 ,1 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0
  ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,0 ,1 ;
 
-    reseauXOR.train_full(X2,E2);
+    reseauXOR.train_full(X2,E2,alpha,eps,iter_max,false);
     reseauXOR.save_to_file("Testsoftmax.json");
     // Test un peu
     RowVectorld T(10);
