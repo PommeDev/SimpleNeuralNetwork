@@ -1,8 +1,9 @@
 #include "Network.hpp"
 #include <random>
 #include <sstream>
-#include "calcul_erreur.hpp"
+
 #include <assert.h>
+
 
 
 void Network::init_params(){
@@ -65,7 +66,7 @@ Network::Network(
         }
 }
 
-Network::Network():epoch(0){need_to_train = true;}
+Network::Network():epoch(0),fonction_cout(crossEntropy){need_to_train = true;}
 
 
 void Network::train_1_gen(Matrixld X,Matrixld E,long double alpha, long double eps, bool affichage){
@@ -380,5 +381,6 @@ void Network::add_enter(int neuronnes){
 void Network::add_exit(int neuronnes, Activation activation){
     add_layer(neuronnes, activation);
     init_params();
+    
 
 }

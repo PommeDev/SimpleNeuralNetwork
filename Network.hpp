@@ -7,6 +7,7 @@
 #include <chrono>
 #include "activation_fonction_matrix.hpp"
 #include "derivee.hpp"
+#include "calcul_erreur.hpp"
 
 using json = nlohmann::json;
 using namespace std;
