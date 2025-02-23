@@ -15,6 +15,16 @@ inline Matrixld dReLU(const Matrixld& x){
 }
 
 
+inline Matrixld dSoftPlus(const Matrixld& x){
+    return sigmoid_m(x);
+}
+
+
+inline Matrixld dTanh(const Matrixld& x){
+    return ((static_cast<long double>(1.0) - (tanh_m(x).array()*tanh_m(x).array()))).matrix().eval();
+}
+
+
 inline Matrixld dSoftMax(const Matrixld& S) {
     // S est un vecteur de probabilité prédite par Softmax (de dimension n)
     // La dérivée de Softmax est la matrice Jacobienne, de taille n x n

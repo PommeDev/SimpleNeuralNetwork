@@ -26,6 +26,28 @@ inline Matrixld ReLU_m(const Matrixld& x){
     return temp;
 }
 
+inline Matrixld SoftPlus_m(const Matrixld& x){
+    Matrixld temp(x);
+    for (Index i=0;i<x.rows();i++){
+        for (Index j =0;j<x.cols();j++){
+            temp(i,j) = softplus(x(i,j));
+        }
+    }
+    return temp;
+}
+
+
+inline Matrixld tanh_m(const Matrixld& x){
+    Matrixld temp(x);
+    for (Index i=0;i<x.rows();i++){
+        for (Index j =0;j<x.cols();j++){
+            temp(i,j) = tanh2(x(i,j));
+        }
+    }
+    return temp;
+}
+
+
 /* Calcul softmax */
 inline Matrixld SoftMax(const Matrixld& x) {
     // Soustraction du max de chaque ligne pour la stabilité numérique

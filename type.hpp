@@ -7,7 +7,9 @@ using namespace Eigen;
 #define ACTIVATIONS_ENUM
 enum class Activation{
     Sigmoid,
-    ReLU
+    ReLU,
+    SoftPlus,
+    Tanh
 };
 #endif
 

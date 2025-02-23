@@ -367,6 +367,18 @@ void Network::add_layer(int neuronnes, Activation activation){
         activations.push_back(ReLU_m);
         derivees.push_back(dReLU);
         break;
+    
+    case Activation::SoftPlus:
+        this->neuronnes.push_back(neuronnes);
+        activations.push_back(SoftPlus_m);
+        derivees.push_back(dSoftPlus);
+        break;
+
+    case Activation::Tanh:
+        this->neuronnes.push_back(neuronnes);
+        activations.push_back(tanh_m);
+        derivees.push_back(dTanh);
+        break;
 
     default:
         break;
