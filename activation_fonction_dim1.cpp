@@ -6,8 +6,13 @@ long double sigmoid(long double x){
 }
 
 //leaked ReLU
-long double ReLU(long double x){
+long double l_ReLU(long double x){
     return __max(EPS*x,x);
+}
+
+//ReLu
+long double ReLU(long double x){
+    return __max(0,x);
 }
 
 long double softplus(long double x){
